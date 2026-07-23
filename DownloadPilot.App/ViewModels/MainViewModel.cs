@@ -113,6 +113,24 @@ public sealed class MainViewModel : ObservableObject
     private string _storageMapStatus = "Nog geen opslagkaart gemaakt.";
     private string _protectedPathsStatus = "Geen beschermde paden ingesteld.";
     private string _updateStatus = "Updatecheck via GitHub staat klaar.";
+    private UpdateCheckResult? _pendingUpdateResult;
+    private string? _downloadedUpdatePath;
+    private string? _updateDialogReleaseUrl;
+    private bool _isUpdateDialogVisible;
+    private bool _isUpdateDialogBusy;
+    private bool _isUpdateDialogProgressVisible;
+    private bool _isUpdateDownloadIndeterminate = true;
+    private bool _canDownloadUpdate;
+    private bool _canInstallDownloadedUpdate;
+    private bool _canOpenUpdateRelease;
+    private double _updateDownloadProgress;
+    private string _updateDialogTitle = "DownloadPilot updates";
+    private string _updateDialogSubtitle = "Controleer GitHub Releases voor een nieuwe versie.";
+    private string _updateDialogDetail = "Je krijgt altijd eerst een duidelijke bevestiging voordat er iets wordt geinstalleerd.";
+    private string _updateDialogBadge = "GitHub Releases";
+    private string _updateDialogIcon = "\uE895";
+    private string _updateDownloadProgressText = "Klaar";
+    private string _updateDownloadSizeText = string.Empty;
     private string _advancedAuditStatus = "Power-audit nog niet uitgevoerd.";
     private string _permissionSummary = "DownloadPilot scant alleen gekozen lokale mappen.";
     private string _cleanupScheduleStatus = "Nog geen opruimplanning geregistreerd.";
@@ -217,6 +235,10 @@ public sealed class MainViewModel : ObservableObject
         ApplySmartNameRepairCommand = new RelayCommand(ApplySmartNameRepair, () => SmartRenameItems.Count > 0);
         RefreshSmartToolsCommand = new RelayCommand(RefreshSmartTools);
         CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesManuallyAsync);
+        DownloadUpdateCommand = new AsyncRelayCommand(DownloadPendingUpdateAsync, () => CanDownloadUpdate && !IsUpdateDialogBusy);
+        InstallDownloadedUpdateCommand = new RelayCommand(InstallDownloadedUpdate, () => CanInstallDownloadedUpdate && !IsUpdateDialogBusy);
+        OpenUpdateReleaseCommand = new RelayCommand(OpenUpdateRelease, () => CanOpenUpdateRelease);
+        DismissUpdateDialogCommand = new RelayCommand(DismissUpdateDialog, () => !IsUpdateDialogBusy);
         OpenSelectedToolPathsCommand = new RelayCommand(OpenSelectedToolPaths);
         RevealSelectedToolPathsCommand = new RelayCommand(RevealSelectedToolPaths);
         IgnoreSelectedToolPathsCommand = new AsyncRelayCommand(IgnoreSelectedToolPathsAsync);
@@ -514,6 +536,14 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RefreshSmartToolsCommand { get; }
 
     public AsyncRelayCommand CheckForUpdatesCommand { get; }
+
+    public AsyncRelayCommand DownloadUpdateCommand { get; }
+
+    public RelayCommand InstallDownloadedUpdateCommand { get; }
+
+    public RelayCommand OpenUpdateReleaseCommand { get; }
+
+    public RelayCommand DismissUpdateDialogCommand { get; }
 
     public RelayCommand OpenSelectedToolPathsCommand { get; }
 
@@ -844,6 +874,120 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _updateStatus;
         private set => SetProperty(ref _updateStatus, value);
+    }
+
+    public bool IsUpdateDialogVisible
+    {
+        get => _isUpdateDialogVisible;
+        private set => SetProperty(ref _isUpdateDialogVisible, value);
+    }
+
+    public bool IsUpdateDialogBusy
+    {
+        get => _isUpdateDialogBusy;
+        private set
+        {
+            if (SetProperty(ref _isUpdateDialogBusy, value))
+            {
+                RaiseUpdateDialogCommandStates();
+            }
+        }
+    }
+
+    public bool IsUpdateDialogProgressVisible
+    {
+        get => _isUpdateDialogProgressVisible;
+        private set => SetProperty(ref _isUpdateDialogProgressVisible, value);
+    }
+
+    public bool IsUpdateDownloadIndeterminate
+    {
+        get => _isUpdateDownloadIndeterminate;
+        private set => SetProperty(ref _isUpdateDownloadIndeterminate, value);
+    }
+
+    public bool CanDownloadUpdate
+    {
+        get => _canDownloadUpdate;
+        private set
+        {
+            if (SetProperty(ref _canDownloadUpdate, value))
+            {
+                DownloadUpdateCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool CanInstallDownloadedUpdate
+    {
+        get => _canInstallDownloadedUpdate;
+        private set
+        {
+            if (SetProperty(ref _canInstallDownloadedUpdate, value))
+            {
+                InstallDownloadedUpdateCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool CanOpenUpdateRelease
+    {
+        get => _canOpenUpdateRelease;
+        private set
+        {
+            if (SetProperty(ref _canOpenUpdateRelease, value))
+            {
+                OpenUpdateReleaseCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public double UpdateDownloadProgress
+    {
+        get => _updateDownloadProgress;
+        private set => SetProperty(ref _updateDownloadProgress, value);
+    }
+
+    public string UpdateDialogTitle
+    {
+        get => _updateDialogTitle;
+        private set => SetProperty(ref _updateDialogTitle, value);
+    }
+
+    public string UpdateDialogSubtitle
+    {
+        get => _updateDialogSubtitle;
+        private set => SetProperty(ref _updateDialogSubtitle, value);
+    }
+
+    public string UpdateDialogDetail
+    {
+        get => _updateDialogDetail;
+        private set => SetProperty(ref _updateDialogDetail, value);
+    }
+
+    public string UpdateDialogBadge
+    {
+        get => _updateDialogBadge;
+        private set => SetProperty(ref _updateDialogBadge, value);
+    }
+
+    public string UpdateDialogIcon
+    {
+        get => _updateDialogIcon;
+        private set => SetProperty(ref _updateDialogIcon, value);
+    }
+
+    public string UpdateDownloadProgressText
+    {
+        get => _updateDownloadProgressText;
+        private set => SetProperty(ref _updateDownloadProgressText, value);
+    }
+
+    public string UpdateDownloadSizeText
+    {
+        get => _updateDownloadSizeText;
+        private set => SetProperty(ref _updateDownloadSizeText, value);
     }
 
     public string AdvancedAuditStatus
@@ -3364,6 +3508,12 @@ public sealed class MainViewModel : ObservableObject
     private async Task CheckForUpdatesAsync(bool showUpToDateMessage)
     {
         UpdateStatus = "GitHub wordt gecontroleerd op nieuwe releases...";
+        ToolStatusMessage = UpdateStatus;
+        if (showUpToDateMessage)
+        {
+            ShowUpdateCheckingDialog();
+        }
+
         try
         {
             var result = await _updateService.CheckLatestAsync(CancellationToken.None);
@@ -3374,86 +3524,24 @@ public sealed class MainViewModel : ObservableObject
             {
                 if (showUpToDateMessage)
                 {
-                    MessageBox.Show(
+                    ShowUpdateInfoDialog(
+                        "Je gebruikt de nieuwste versie",
                         UpdateStatus,
-                        "DownloadPilot updates",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                        $"Gecontroleerd tegen GitHub Releases. Lokale versie: {result.CurrentVersion}.",
+                        "Up-to-date",
+                        "\uE73E",
+                        result.ReleaseUrl);
                 }
 
                 return;
             }
 
             var settings = _appSettings ?? await _settingsService.LoadAsync(CancellationToken.None);
+            ShowUpdateAvailableDialog(result, settings.AutoDownloadUpdates && !string.IsNullOrWhiteSpace(result.DownloadUrl));
+
             if (settings.AutoDownloadUpdates && !string.IsNullOrWhiteSpace(result.DownloadUrl))
             {
-                UpdateStatus = "Nieuwe update gevonden; download wordt alvast klaargezet...";
-                var autoDownloadedPath = await _updateService.DownloadUpdateAsync(result, CancellationToken.None);
-                if (!string.IsNullOrWhiteSpace(autoDownloadedPath))
-                {
-                    var installResponse = MessageBox.Show(
-                        $"Update {result.LatestVersion} is gedownload.\n\nNu installeren en DownloadPilot opnieuw starten?",
-                        "DownloadPilot update klaar",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
-
-                    if (installResponse == MessageBoxResult.Yes)
-                    {
-                        var shouldShutdownAfterAutoDownload = GitHubUpdateService.StartDownloadedUpdate(
-                            autoDownloadedPath,
-                            AppContext.BaseDirectory,
-                            Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "DownloadPilot.App.exe"),
-                            Environment.ProcessId);
-                        if (shouldShutdownAfterAutoDownload)
-                        {
-                            ShutdownApplication();
-                        }
-                    }
-
-                    UpdateStatus = $"Update gedownload: {autoDownloadedPath}";
-                    return;
-                }
-            }
-
-            var prompt = string.IsNullOrWhiteSpace(result.DownloadUrl)
-                ? $"Er is een nieuwe versie beschikbaar: {result.LatestVersion}. Open de GitHub releasepagina?"
-                : $"Er is een nieuwe versie beschikbaar: {result.LatestVersion}.\n\nDownload en installeren?";
-            var response = MessageBox.Show(
-                prompt,
-                "Nieuwe DownloadPilot versie",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
-
-            if (response != MessageBoxResult.Yes)
-            {
-                UpdateStatus = "Update overgeslagen";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(result.DownloadUrl))
-            {
-                OpenUrl(result.ReleaseUrl ?? "https://github.com/kratje050/Downloadpilot/releases");
-                return;
-            }
-
-            UpdateStatus = "Update wordt gedownload...";
-            var downloadedPath = await _updateService.DownloadUpdateAsync(result, CancellationToken.None);
-            if (string.IsNullOrWhiteSpace(downloadedPath))
-            {
-                UpdateStatus = "Geen downloadbare release-asset gevonden";
-                OpenUrl(result.ReleaseUrl ?? "https://github.com/kratje050/Downloadpilot/releases");
-                return;
-            }
-
-            UpdateStatus = $"Update gedownload: {downloadedPath}";
-            var shouldShutdown = GitHubUpdateService.StartDownloadedUpdate(
-                downloadedPath,
-                AppContext.BaseDirectory,
-                Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "DownloadPilot.App.exe"),
-                Environment.ProcessId);
-            if (shouldShutdown)
-            {
-                ShutdownApplication();
+                await DownloadPendingUpdateAsync();
             }
         }
         catch (Exception ex)
@@ -3462,13 +3550,244 @@ public sealed class MainViewModel : ObservableObject
             ToolStatusMessage = UpdateStatus;
             if (showUpToDateMessage)
             {
-                MessageBox.Show(
+                ShowUpdateInfoDialog(
+                    "Updatecheck mislukt",
                     UpdateStatus,
-                    "DownloadPilot updates",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    "Controleer je internetverbinding of open de GitHub releasepagina handmatig.",
+                    "Aandacht nodig",
+                    "\uE783",
+                    "https://github.com/kratje050/Downloadpilot/releases");
             }
         }
+    }
+
+    private void ShowUpdateCheckingDialog()
+    {
+        _pendingUpdateResult = null;
+        _downloadedUpdatePath = null;
+        _updateDialogReleaseUrl = "https://github.com/kratje050/Downloadpilot/releases/latest";
+        UpdateDialogBadge = "GitHub Releases";
+        UpdateDialogIcon = "\uE895";
+        UpdateDialogTitle = "Updates controleren";
+        UpdateDialogSubtitle = "DownloadPilot kijkt welke release op GitHub klaarstaat.";
+        UpdateDialogDetail = "Dit duurt meestal maar een paar seconden.";
+        UpdateDownloadProgress = 0;
+        UpdateDownloadProgressText = "Controleren...";
+        UpdateDownloadSizeText = "Verbinding maken met GitHub";
+        IsUpdateDownloadIndeterminate = true;
+        IsUpdateDialogProgressVisible = true;
+        CanDownloadUpdate = false;
+        CanInstallDownloadedUpdate = false;
+        CanOpenUpdateRelease = false;
+        IsUpdateDialogBusy = true;
+        IsUpdateDialogVisible = true;
+    }
+
+    private void ShowUpdateAvailableDialog(UpdateCheckResult result, bool autoDownload)
+    {
+        _pendingUpdateResult = result;
+        _downloadedUpdatePath = null;
+        _updateDialogReleaseUrl = result.ReleaseUrl;
+        UpdateDialogBadge = autoDownload ? "Auto-download actief" : "Nieuwe release";
+        UpdateDialogIcon = "\uE895";
+        UpdateDialogTitle = $"DownloadPilot {result.LatestVersion ?? "update"} is beschikbaar";
+        UpdateDialogSubtitle = $"Je gebruikt nu {result.CurrentVersion}. De nieuwste GitHub-release staat klaar.";
+        UpdateDialogDetail = string.IsNullOrWhiteSpace(result.DownloadUrl)
+            ? "Er is geen downloadbaar releasebestand gevonden. Open GitHub om de release te bekijken."
+            : $"Bestand: {result.AssetName ?? "DownloadPilot update"}. DownloadPilot toont de voortgang en vraagt daarna of je wilt installeren.";
+        UpdateDownloadProgress = 0;
+        UpdateDownloadProgressText = autoDownload ? "Download wordt voorbereid..." : "Klaar om te downloaden";
+        UpdateDownloadSizeText = string.IsNullOrWhiteSpace(result.AssetName) ? string.Empty : result.AssetName;
+        IsUpdateDownloadIndeterminate = autoDownload;
+        IsUpdateDialogProgressVisible = autoDownload;
+        IsUpdateDialogBusy = false;
+        CanDownloadUpdate = !string.IsNullOrWhiteSpace(result.DownloadUrl);
+        CanInstallDownloadedUpdate = false;
+        CanOpenUpdateRelease = !string.IsNullOrWhiteSpace(result.ReleaseUrl);
+        IsUpdateDialogVisible = true;
+    }
+
+    private void ShowUpdateInfoDialog(
+        string title,
+        string subtitle,
+        string detail,
+        string badge,
+        string icon,
+        string? releaseUrl)
+    {
+        _pendingUpdateResult = null;
+        _downloadedUpdatePath = null;
+        _updateDialogReleaseUrl = releaseUrl;
+        UpdateDialogBadge = badge;
+        UpdateDialogIcon = icon;
+        UpdateDialogTitle = title;
+        UpdateDialogSubtitle = subtitle;
+        UpdateDialogDetail = detail;
+        UpdateDownloadProgress = 100;
+        UpdateDownloadProgressText = string.Empty;
+        UpdateDownloadSizeText = string.Empty;
+        IsUpdateDownloadIndeterminate = false;
+        IsUpdateDialogProgressVisible = false;
+        IsUpdateDialogBusy = false;
+        CanDownloadUpdate = false;
+        CanInstallDownloadedUpdate = false;
+        CanOpenUpdateRelease = !string.IsNullOrWhiteSpace(releaseUrl);
+        IsUpdateDialogVisible = true;
+    }
+
+    private async Task DownloadPendingUpdateAsync()
+    {
+        var result = _pendingUpdateResult;
+        if (result is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(result.DownloadUrl))
+        {
+            OpenUpdateRelease();
+            return;
+        }
+
+        UpdateStatus = "Update wordt gedownload...";
+        ToolStatusMessage = UpdateStatus;
+        UpdateDialogBadge = "Download bezig";
+        UpdateDialogIcon = "\uE896";
+        UpdateDialogTitle = $"DownloadPilot {result.LatestVersion ?? "update"} downloaden";
+        UpdateDialogSubtitle = "De update wordt veilig naar je lokale update-map gedownload.";
+        UpdateDialogDetail = "Laat DownloadPilot open tot de download klaar is. Daarna kun je direct installeren.";
+        UpdateDownloadProgress = 0;
+        UpdateDownloadProgressText = "0%";
+        UpdateDownloadSizeText = "Download voorbereiden";
+        IsUpdateDownloadIndeterminate = true;
+        IsUpdateDialogProgressVisible = true;
+        IsUpdateDialogBusy = true;
+        CanDownloadUpdate = false;
+        CanInstallDownloadedUpdate = false;
+        IsUpdateDialogVisible = true;
+
+        try
+        {
+            var progress = new Progress<UpdateDownloadProgress>(ApplyUpdateDownloadProgress);
+            var downloadedPath = await _updateService.DownloadUpdateAsync(result, progress, CancellationToken.None);
+            if (string.IsNullOrWhiteSpace(downloadedPath))
+            {
+                UpdateStatus = "Geen downloadbare release-asset gevonden";
+                ToolStatusMessage = UpdateStatus;
+                ShowUpdateInfoDialog(
+                    "Geen downloadbestand gevonden",
+                    UpdateStatus,
+                    "Open GitHub Releases om de update handmatig te downloaden.",
+                    "GitHub openen",
+                    "\uE8A7",
+                    result.ReleaseUrl);
+                return;
+            }
+
+            _downloadedUpdatePath = downloadedPath;
+            UpdateStatus = $"Update gedownload: {downloadedPath}";
+            ToolStatusMessage = "Update is klaar om te installeren";
+            UpdateDialogBadge = "Klaar voor installatie";
+            UpdateDialogIcon = "\uE73E";
+            UpdateDialogTitle = $"DownloadPilot {result.LatestVersion ?? "update"} staat klaar";
+            UpdateDialogSubtitle = "De download is voltooid. Je kunt nu installeren en DownloadPilot opnieuw starten.";
+            UpdateDialogDetail = $"Opgeslagen als: {Path.GetFileName(downloadedPath)}";
+            UpdateDownloadProgress = 100;
+            UpdateDownloadProgressText = "100%";
+            UpdateDownloadSizeText = File.Exists(downloadedPath) ? FormatBytes(new FileInfo(downloadedPath).Length) : "Download voltooid";
+            IsUpdateDownloadIndeterminate = false;
+            IsUpdateDialogProgressVisible = true;
+            CanInstallDownloadedUpdate = true;
+            CanOpenUpdateRelease = !string.IsNullOrWhiteSpace(result.ReleaseUrl);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = $"Update downloaden mislukt: {ex.Message}";
+            ToolStatusMessage = UpdateStatus;
+            ShowUpdateInfoDialog(
+                "Download mislukt",
+                UpdateStatus,
+                "Je kunt de GitHub releasepagina openen en de update handmatig downloaden.",
+                "Aandacht nodig",
+                "\uE783",
+                result.ReleaseUrl);
+        }
+        finally
+        {
+            IsUpdateDialogBusy = false;
+        }
+    }
+
+    private void ApplyUpdateDownloadProgress(UpdateDownloadProgress progress)
+    {
+        var percentage = progress.Percentage;
+        IsUpdateDownloadIndeterminate = percentage is null;
+        UpdateDownloadProgress = percentage ?? 0;
+        UpdateDownloadProgressText = percentage is null ? "Downloaden..." : $"{percentage.Value:0}%";
+        UpdateDownloadSizeText = progress.HasKnownTotal
+            ? $"{FormatBytes(progress.BytesReceived)} van {FormatBytes(progress.TotalBytes!.Value)}"
+            : $"{FormatBytes(progress.BytesReceived)} ontvangen";
+        UpdateStatus = percentage is null
+            ? $"{progress.Status} {UpdateDownloadSizeText}"
+            : $"{progress.Status} {percentage.Value:0}%";
+        ToolStatusMessage = UpdateStatus;
+    }
+
+    private void InstallDownloadedUpdate()
+    {
+        if (string.IsNullOrWhiteSpace(_downloadedUpdatePath))
+        {
+            return;
+        }
+
+        var shouldShutdown = GitHubUpdateService.StartDownloadedUpdate(
+            _downloadedUpdatePath,
+            AppContext.BaseDirectory,
+            Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "DownloadPilot.App.exe"),
+            Environment.ProcessId);
+
+        if (shouldShutdown)
+        {
+            ShutdownApplication();
+            return;
+        }
+
+        UpdateDialogBadge = "Installer geopend";
+        UpdateDialogIcon = "\uE8A7";
+        UpdateDialogTitle = "Updatebestand geopend";
+        UpdateDialogSubtitle = "Volg de installatie in het venster dat is geopend.";
+        UpdateDialogDetail = _downloadedUpdatePath;
+        CanInstallDownloadedUpdate = false;
+        UpdateStatus = "Updatebestand geopend";
+        ToolStatusMessage = UpdateStatus;
+    }
+
+    private void OpenUpdateRelease()
+    {
+        OpenUrl(_pendingUpdateResult?.ReleaseUrl ?? _updateDialogReleaseUrl ?? "https://github.com/kratje050/Downloadpilot/releases");
+    }
+
+    private void DismissUpdateDialog()
+    {
+        if (IsUpdateDialogBusy)
+        {
+            return;
+        }
+
+        IsUpdateDialogVisible = false;
+        if (_pendingUpdateResult is not null && string.IsNullOrWhiteSpace(_downloadedUpdatePath))
+        {
+            UpdateStatus = "Update overgeslagen";
+            ToolStatusMessage = UpdateStatus;
+        }
+    }
+
+    private void RaiseUpdateDialogCommandStates()
+    {
+        DownloadUpdateCommand.RaiseCanExecuteChanged();
+        InstallDownloadedUpdateCommand.RaiseCanExecuteChanged();
+        OpenUpdateReleaseCommand.RaiseCanExecuteChanged();
+        DismissUpdateDialogCommand.RaiseCanExecuteChanged();
     }
 
     private void OpenSelectedToolPaths()

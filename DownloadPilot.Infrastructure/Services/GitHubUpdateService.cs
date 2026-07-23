@@ -79,6 +79,14 @@ public sealed class GitHubUpdateService : IUpdateService
 
     public async Task<string?> DownloadUpdateAsync(UpdateCheckResult update, CancellationToken cancellationToken)
     {
+        return await DownloadUpdateAsync(update, progress: null, cancellationToken);
+    }
+
+    public async Task<string?> DownloadUpdateAsync(
+        UpdateCheckResult update,
+        IProgress<UpdateDownloadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
         if (string.IsNullOrWhiteSpace(update.DownloadUrl))
         {
             return null;
@@ -95,9 +103,34 @@ public sealed class GitHubUpdateService : IUpdateService
         var outputPath = Path.Combine(updateDirectory, fileName);
         using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DownloadPilot", update.CurrentVersion));
-        await using var remote = await client.GetStreamAsync(update.DownloadUrl, cancellationToken);
+        using var response = await client.GetAsync(
+            update.DownloadUrl,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength;
+        progress?.Report(new UpdateDownloadProgress(0, totalBytes, "Download gestart"));
+
+        await using var remote = await response.Content.ReadAsStreamAsync(cancellationToken);
         await using var local = File.Create(outputPath);
-        await remote.CopyToAsync(local, cancellationToken);
+        var buffer = new byte[81920];
+        long bytesReceived = 0;
+
+        while (true)
+        {
+            var bytesRead = await remote.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            await local.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+            bytesReceived += bytesRead;
+            progress?.Report(new UpdateDownloadProgress(bytesReceived, totalBytes, "Downloaden..."));
+        }
+
+        progress?.Report(new UpdateDownloadProgress(bytesReceived, totalBytes ?? bytesReceived, "Download voltooid"));
         return outputPath;
     }
 

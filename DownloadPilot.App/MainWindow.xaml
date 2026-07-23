@@ -169,7 +169,7 @@
                                 </TextBlock.Style>
                             </TextBlock>
                         </StackPanel>
-                        <TextBlock Grid.Row="1" Margin="16,6,0,0" FontSize="10" Foreground="{DynamicResource NavMutedBrush}" Text="Versie 0.2.2" />
+                        <TextBlock Grid.Row="1" Margin="16,6,0,0" FontSize="10" Foreground="{DynamicResource NavMutedBrush}" Text="Versie 0.2.3" />
                     </Grid>
                 </Border>
             </Grid>
@@ -1874,7 +1874,7 @@
                             <Grid Margin="28">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="240" /></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="DOWNLOADPILOT 0.2.2" />
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="DOWNLOADPILOT 0.2.3" />
                                     <TextBlock Margin="0,10,0,0" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="Rust in je Downloads-map" />
                                     <TextBlock Margin="0,10,0,0" MaxWidth="600" HorizontalAlignment="Left" FontSize="14" Foreground="{DynamicResource OnAccentBrush}" Opacity="0.82" TextWrapping="Wrap" TextTrimming="None" Text="Een lokale Windows-assistent die bestanden herkent, voorstellen doet en alleen handelt wanneer jij dat toestaat." />
                                     <Button Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding CheckForUpdatesCommand}">
@@ -1912,6 +1912,145 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
+
+        <!-- Update dialog -->
+        <Grid Grid.RowSpan="2"
+              Grid.ColumnSpan="2"
+              Panel.ZIndex="120"
+              Background="#B8191B1F"
+              Visibility="{Binding IsUpdateDialogVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border Width="620"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Height="126"
+                            Background="{DynamicResource AccentBrush}"
+                            CornerRadius="8,8,0,0">
+                        <Grid Margin="24,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <Border HorizontalAlignment="Left" Padding="10,5" Background="#29FFFFFF" CornerRadius="6">
+                                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="{Binding UpdateDialogBadge}" />
+                                </Border>
+                                <TextBlock Margin="0,12,0,0" FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="{Binding UpdateDialogTitle}" TextTrimming="None" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Width="36"
+                                    Height="36"
+                                    Padding="0"
+                                    VerticalAlignment="Top"
+                                    Margin="0,18,0,0"
+                                    Background="#24FFFFFF"
+                                    BorderBrush="#35FFFFFF"
+                                    Foreground="{DynamicResource OnAccentBrush}"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    Command="{Binding DismissUpdateDialogCommand}"
+                                    Content="&#xE711;"
+                                    FontFamily="Segoe Fluent Icons"
+                                    ToolTip="Sluiten" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="26,24,26,22">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="86" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Width="64" Height="64" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource AccentSoftBrush}" CornerRadius="8">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe Fluent Icons" FontSize="28" Foreground="{DynamicResource AccentBrush}" Text="{Binding UpdateDialogIcon}" />
+                        </Border>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding UpdateDialogSubtitle}" TextWrapping="Wrap" TextTrimming="None" />
+                            <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding UpdateDialogDetail}" TextWrapping="Wrap" TextTrimming="None" />
+
+                            <Border Margin="0,18,0,0"
+                                    Padding="16"
+                                    Background="{DynamicResource SurfaceMutedBrush}"
+                                    CornerRadius="8"
+                                    Visibility="{Binding IsUpdateDialogProgressVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="10" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding UpdateDownloadSizeText}" TextWrapping="Wrap" TextTrimming="None" />
+                                        <TextBlock Grid.Column="1" Margin="16,0,0,0" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Text="{Binding UpdateDownloadProgressText}" />
+                                    </Grid>
+                                    <ProgressBar Grid.Row="2"
+                                                 Height="9"
+                                                 Minimum="0"
+                                                 Maximum="100"
+                                                 Value="{Binding UpdateDownloadProgress}"
+                                                 IsIndeterminate="{Binding IsUpdateDownloadIndeterminate}" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="26,0,26,24">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding UpdateStatus}" TextWrapping="Wrap" TextTrimming="None" />
+                        <WrapPanel Grid.Column="1" Margin="16,0,0,0" HorizontalAlignment="Right">
+                            <Button Margin="0,0,8,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding DismissUpdateDialogCommand}" Content="Later" />
+                            <Button Margin="0,0,8,0" Command="{Binding OpenUpdateReleaseCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanOpenUpdateRelease}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Margin="0,0,7,0" FontFamily="Segoe Fluent Icons" Text="&#xE8A7;" />
+                                    <TextBlock Text="GitHub openen" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding DownloadUpdateCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanDownloadUpdate}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Margin="0,0,7,0" FontFamily="Segoe Fluent Icons" Text="&#xE896;" />
+                                    <TextBlock Text="Downloaden" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding InstallDownloadedUpdateCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanInstallDownloadedUpdate}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Margin="0,0,7,0" FontFamily="Segoe Fluent Icons" Text="&#xE73E;" />
+                                    <TextBlock Text="Installeren" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- First-run setup -->
         <Grid x:Name="OnboardingOverlay"

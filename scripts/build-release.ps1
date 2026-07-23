@@ -1,6 +1,6 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "0.2.2",
+    [string]$Version = "0.2.3",
     [string]$Runtime = "win-x64",
     [string]$CertificatePath = "",
     [string]$CertificatePassword = "",
