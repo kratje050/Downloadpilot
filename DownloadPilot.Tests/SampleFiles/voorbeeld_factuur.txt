@@ -1,0 +1,5 @@
+Factuur
+Leverancier: Coolblue
+Bedrag: 699,00
+BTW: 21%
+Factuurdatum: 2026-07-22

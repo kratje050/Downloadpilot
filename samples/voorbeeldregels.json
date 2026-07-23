@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Installatiebestanden",
+    "extensionEquals": ".exe",
+    "fileNameContains": null,
+    "sourceFolderContains": null,
+    "autoApply": false,
+    "priority": 90,
+    "category": "Installatiebestanden",
+    "destinationFolder": "C:/Users/<gebruiker>/Documents/Software/Installatiebestanden",
+    "renameTemplate": "{datum}_Installatie_{origineel}"
+  },
+  {
+    "name": "Facturen Coolblue",
+    "extensionEquals": ".pdf",
+    "fileNameContains": "factuur",
+    "sourceFolderContains": null,
+    "autoApply": false,
+    "priority": 95,
+    "category": "Facturen",
+    "destinationFolder": "C:/Users/<gebruiker>/Documents/Facturen/Coolblue",
+    "renameTemplate": "{datum}_Factuur_Coolblue_{origineel}"
+  }
+]

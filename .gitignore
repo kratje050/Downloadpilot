@@ -1,0 +1,14 @@
+bin/
+obj/
+publish/
+artifacts/
+tmp-report-check/
+tmp-weekly-report-test/
+.codex-remote-attachments/
+*.user
+*.suo
+*.log
+*.db
+*.db-shm
+*.db-wal
+installer/output/
