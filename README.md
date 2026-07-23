@@ -173,6 +173,8 @@ https://github.com/kratje050/Downloadpilot/releases/latest
 
 Als er een nieuwere versie beschikbaar is, krijg je een popup met downloaden en installeren. De updater zoekt naar release-assets met `.exe`, `.msi` of `.zip`. Zip-updates kunnen automatisch worden uitgepakt nadat DownloadPilot zichzelf sluit en daarna opnieuw start. Je kunt automatische updatechecks en alvast downloaden uitzetten in Instellingen.
 
+Handmatig controleren kan in DownloadPilot via `Instellingen > Automatisering`, `Over DownloadPilot` en `Smart tools > Power-audit en updates`.
+
 ### Profielen en planning
 
 DownloadPilot heeft meerdere werkprofielen:
@@ -244,10 +246,10 @@ publish/win-x64/DownloadPilot.App.exe
 Complete release-build met tests, portable zip en optionele signing:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 0.2.1
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 0.2.2
 ```
 
-Bij een GitHub tag zoals `v0.2.1` kan `.github/workflows/release.yml` automatisch bouwen, testen en een release-zip uploaden.
+Bij een GitHub tag zoals `v0.2.2` kan `.github/workflows/release.yml` automatisch bouwen, testen en een release-zip uploaden.
 
 ## Projectstructuur
 
@@ -276,7 +278,7 @@ Bij een GitHub tag zoals `v0.2.1` kan `.github/workflows/release.yml` automatisc
 
 ## Versie
 
-Huidige release: `v0.2.1`
+Huidige release: `v0.2.2`
 
 Laatste release:
 

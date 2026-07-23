@@ -1,5 +1,5 @@
 #define MyAppName "DownloadPilot"
-#define MyAppVersion "0.2.1"
+#define MyAppVersion "0.2.2"
 #define MyAppExeName "DownloadPilot.App.exe"
 
 ; Inno Setup script for DownloadPilot x64
