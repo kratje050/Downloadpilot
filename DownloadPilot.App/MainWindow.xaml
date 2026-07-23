@@ -169,7 +169,7 @@
                                 </TextBlock.Style>
                             </TextBlock>
                         </StackPanel>
-                        <TextBlock Grid.Row="1" Margin="16,6,0,0" FontSize="10" Foreground="{DynamicResource NavMutedBrush}" Text="Versie 0.2.3" />
+                        <TextBlock Grid.Row="1" Margin="16,6,0,0" FontSize="10" Foreground="{DynamicResource NavMutedBrush}" Text="Versie 0.2.4" />
                     </Grid>
                 </Border>
             </Grid>
@@ -1874,7 +1874,7 @@
                             <Grid Margin="28">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="240" /></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="DOWNLOADPILOT 0.2.3" />
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="DOWNLOADPILOT 0.2.4" />
                                     <TextBlock Margin="0,10,0,0" FontSize="32" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentBrush}" Text="Rust in je Downloads-map" />
                                     <TextBlock Margin="0,10,0,0" MaxWidth="600" HorizontalAlignment="Left" FontSize="14" Foreground="{DynamicResource OnAccentBrush}" Opacity="0.82" TextWrapping="Wrap" TextTrimming="None" Text="Een lokale Windows-assistent die bestanden herkent, voorstellen doet en alleen handelt wanneer jij dat toestaat." />
                                     <Button Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding CheckForUpdatesCommand}">
@@ -1986,7 +1986,7 @@
                                                  Height="9"
                                                  Minimum="0"
                                                  Maximum="100"
-                                                 Value="{Binding UpdateDownloadProgress}"
+                                                 Value="{Binding UpdateDownloadProgress, Mode=OneWay}"
                                                  IsIndeterminate="{Binding IsUpdateDownloadIndeterminate}" />
                                 </Grid>
                             </Border>

@@ -246,10 +246,10 @@ publish/win-x64/DownloadPilot.App.exe
 Complete release-build met tests, portable zip en optionele signing:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 0.2.3
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -Version 0.2.4
 ```
 
-Bij een GitHub tag zoals `v0.2.3` kan `.github/workflows/release.yml` automatisch bouwen, testen en een release-zip uploaden.
+Bij een GitHub tag zoals `v0.2.4` kan `.github/workflows/release.yml` automatisch bouwen, testen en een release-zip uploaden.
 
 ## Projectstructuur
 
@@ -278,7 +278,7 @@ Bij een GitHub tag zoals `v0.2.3` kan `.github/workflows/release.yml` automatisc
 
 ## Versie
 
-Huidige release: `v0.2.3`
+Huidige release: `v0.2.4`
 
 Laatste release:
 
