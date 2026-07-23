@@ -32,7 +32,7 @@ public sealed class TrayService : IDisposable
         menu.Items.Add("Opruimscan starten", null, (_, _) => _viewModel.ScanDownloadsCommand.Execute(null));
         menu.Items.Add("Laatste actie terugdraaien", null, (_, _) => _viewModel.UndoLastCommand.Execute(null));
         menu.Items.Add("Instellingen", null, (_, _) => OpenMainWindow());
-        menu.Items.Add("Afsluiten", null, (_, _) => Application.Current.Shutdown());
+        menu.Items.Add("Afsluiten", null, (_, _) => ShutdownApplication());
 
         _notifyIcon.ContextMenuStrip = menu;
         _notifyIcon.DoubleClick += (_, _) => OpenMainWindow();
@@ -75,5 +75,15 @@ public sealed class TrayService : IDisposable
         Application.Current.MainWindow.Show();
         Application.Current.MainWindow.WindowState = WindowState.Normal;
         Application.Current.MainWindow.Activate();
+    }
+
+    private static void ShutdownApplication()
+    {
+        if (Application.Current.MainWindow is DownloadPilot.App.MainWindow window)
+        {
+            window.AllowClose();
+        }
+
+        Application.Current.Shutdown();
     }
 }

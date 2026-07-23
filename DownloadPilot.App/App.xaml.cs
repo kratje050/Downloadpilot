@@ -57,6 +57,7 @@ public partial class App : Application
 		if (weeklyReportDirectory is not null)
 		{
 			await vm.ExportWeeklyCleanupReportToDirectoryAsync(weeklyReportDirectory, CancellationToken.None);
+			window.AllowClose();
 			Shutdown();
 			return;
 		}
@@ -67,6 +68,7 @@ public partial class App : Application
 			await Dispatcher.InvokeAsync(
 				() => CapturePreviews(window, captureDirectory),
 				DispatcherPriority.ApplicationIdle);
+			window.AllowClose();
 			Shutdown();
 			return;
 		}

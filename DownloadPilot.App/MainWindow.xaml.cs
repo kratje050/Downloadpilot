@@ -1,4 +1,5 @@
-﻿using System.Windows;
+using System.ComponentModel;
+using System.Windows;
 using DownloadPilot.App.Services;
 using DownloadPilot.App.ViewModels;
 
@@ -6,6 +7,8 @@ namespace DownloadPilot.App;
 
 public partial class MainWindow : Window
 {
+    private bool _allowClose;
+
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
@@ -27,6 +30,24 @@ public partial class MainWindow : Window
                 Hide();
             }
         };
+    }
+
+    public void AllowClose()
+    {
+        _allowClose = true;
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_allowClose)
+        {
+            e.Cancel = true;
+            WindowState = WindowState.Minimized;
+            Hide();
+            return;
+        }
+
+        base.OnClosing(e);
     }
 
     private void MailPasswordBox_OnPasswordChanged(object sender, RoutedEventArgs e)

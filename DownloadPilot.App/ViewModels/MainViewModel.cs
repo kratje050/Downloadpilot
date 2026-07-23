@@ -3406,7 +3406,7 @@ public sealed class MainViewModel : ObservableObject
                             Environment.ProcessId);
                         if (shouldShutdownAfterAutoDownload)
                         {
-                            Application.Current.Shutdown();
+                            ShutdownApplication();
                         }
                     }
 
@@ -3453,7 +3453,7 @@ public sealed class MainViewModel : ObservableObject
                 Environment.ProcessId);
             if (shouldShutdown)
             {
-                Application.Current.Shutdown();
+                ShutdownApplication();
             }
         }
         catch (Exception ex)
@@ -5452,6 +5452,16 @@ public sealed class MainViewModel : ObservableObject
         {
             UseShellExecute = true
         });
+    }
+
+    private static void ShutdownApplication()
+    {
+        if (Application.Current.MainWindow is DownloadPilot.App.MainWindow window)
+        {
+            window.AllowClose();
+        }
+
+        Application.Current.Shutdown();
     }
 
     private sealed record InvoiceRecord(
